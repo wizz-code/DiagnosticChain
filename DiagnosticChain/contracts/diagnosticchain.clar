@@ -128,3 +128,116 @@
     (ok test-id)
   )
 )
+
+(define-public (collect-sample (test-id uint))
+  (let ((test-data (unwrap! (map-get? diagnostic-tests { test-id: test-id }) ERR_TEST_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get lab-facility test-data)) ERR_NOT_AUTHORIZED)
+    (asserts! (is-eq (get status test-data) "ordered") ERR_NOT_AUTHORIZED)
+    (map-set diagnostic-tests
+      { test-id: test-id }
+      (merge test-data {
+        sample-collected: block-height,
+        status: "sample-collected"
+      })
+    )
+    (ok true)
+  )
+)
+
+(define-public (submit-test-results
+  (test-id uint)
+  (result-values (string-ascii 500))
+  (reference-ranges (string-ascii 300))
+  (abnormal-flags (string-ascii 100))
+  (technician-id principal)
+  (result-hash (buff 32))
+  (interpretation (string-ascii 400))
+  (follow-up-required bool))
+  (let ((test-data (unwrap! (map-get? diagnostic-tests { test-id: test-id }) ERR_TEST_NOT_FOUND))
+        (existing-result (map-get? test-results { test-id: test-id })))
+    (asserts! (is-eq tx-sender (get lab-facility test-data)) ERR_NOT_AUTHORIZED)
+    (asserts! (is-eq (get status test-data) "sample-collected") ERR_NOT_AUTHORIZED)
+    (asserts! (is-none existing-result) ERR_RESULT_EXISTS)
+    (map-set test-results
+      { test-id: test-id }
+      {
+        result-values: result-values,
+        reference-ranges: reference-ranges,
+        abnormal-flags: abnormal-flags,
+        result-date: block-height,
+        technician-id: technician-id,
+        reviewed-by: tx-sender,
+        result-hash: result-hash,
+        interpretation: interpretation,
+        follow-up-required: follow-up-required
+      }
+    )
+    (map-set diagnostic-tests
+      { test-id: test-id }
+      (merge test-data { status: "completed" })
+    )
+    (unwrap-panic (add-to-patient-history 
+      (get patient-id test-data) 
+      test-id 
+      (get test-type test-data)
+      abnormal-flags))
+    (ok true)
+  )
+)
+
+(define-public (add-quality-control
+  (test-id uint)
+  (qc-batch (string-ascii 30))
+  (calibration-date uint)
+  (instrument-id (string-ascii 50))
+  (qc-passed bool)
+  (validation-notes (string-ascii 200)))
+  (let ((test-data (unwrap! (map-get? diagnostic-tests { test-id: test-id }) ERR_TEST_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get lab-facility test-data)) ERR_NOT_AUTHORIZED)
+    (map-set quality-control
+      { test-id: test-id }
+      {
+        qc-batch: qc-batch,
+        calibration-date: calibration-date,
+        instrument-id: instrument-id,
+        qc-passed: qc-passed,
+        validation-notes: validation-notes
+      }
+    )
+    (ok true)
+  )
+)
+
+(define-public (approve-results (test-id uint))
+  (let ((test-data (unwrap! (map-get? diagnostic-tests { test-id: test-id }) ERR_TEST_NOT_FOUND))
+        (result-data (unwrap! (map-get? test-results { test-id: test-id }) ERR_TEST_NOT_FOUND)))
+    (asserts! (is-eq tx-sender (get ordering-physician test-data)) ERR_NOT_AUTHORIZED)
+    (asserts! (is-eq (get status test-data) "completed") ERR_NOT_AUTHORIZED)
+    (map-set diagnostic-tests
+      { test-id: test-id }
+      (merge test-data { status: "approved" })
+    )
+    (ok true)
+  )
+)
+
+(define-private (add-to-patient-history
+  (patient-id principal)
+  (test-id uint)
+  (test-type (string-ascii 100))
+  (result-summary (string-ascii 200)))
+  (let ((history-id (var-get next-history-id)))
+    (map-set patient-test-history
+      { patient-id: patient-id, history-id: history-id }
+      {
+        test-id: test-id,
+        test-date: block-height,
+        test-type: test-type,
+        result-summary: result-summary,
+        physician-notes: ""
+      }
+    )
+    (var-set next-history-id (+ history-id u1))
+    (ok history-id)
+  )
+)
