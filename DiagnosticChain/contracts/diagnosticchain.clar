@@ -91,7 +91,7 @@
         license-number: license-number,
         accreditation: accreditation,
         specialties: specialties,
-        certified-date: block-height,
+        certified-date: stacks-block-height,
         is-active: true
       }
     )
@@ -117,7 +117,7 @@
         lab-facility: lab-facility,
         test-type: test-type,
         test-code: test-code,
-        order-date: block-height,
+        order-date: stacks-block-height,
         sample-collected: u0,
         priority-level: priority-level,
         status: "ordered",
@@ -136,7 +136,7 @@
     (map-set diagnostic-tests
       { test-id: test-id }
       (merge test-data {
-        sample-collected: block-height,
+        sample-collected: stacks-block-height,
         status: "sample-collected"
       })
     )
@@ -164,7 +164,7 @@
         result-values: result-values,
         reference-ranges: reference-ranges,
         abnormal-flags: abnormal-flags,
-        result-date: block-height,
+        result-date: stacks-block-height,
         technician-id: technician-id,
         reviewed-by: tx-sender,
         result-hash: result-hash,
@@ -231,7 +231,7 @@
       { patient-id: patient-id, history-id: history-id }
       {
         test-id: test-id,
-        test-date: block-height,
+        test-date: stacks-block-height,
         test-type: test-type,
         result-summary: result-summary,
         physician-notes: ""
