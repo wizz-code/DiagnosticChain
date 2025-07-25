@@ -241,3 +241,31 @@
     (ok history-id)
   )
 )
+
+(define-read-only (get-diagnostic-test (test-id uint))
+  (map-get? diagnostic-tests { test-id: test-id })
+)
+
+(define-read-only (get-test-results (test-id uint))
+  (map-get? test-results { test-id: test-id })
+)
+
+(define-read-only (get-lab-facility (lab-id principal))
+  (map-get? lab-facilities { lab-id: lab-id })
+)
+
+(define-read-only (get-patient-history (patient-id principal) (history-id uint))
+  (map-get? patient-test-history { patient-id: patient-id, history-id: history-id })
+)
+
+(define-read-only (get-quality-control (test-id uint))
+  (map-get? quality-control { test-id: test-id })
+)
+
+(define-read-only (get-next-test-id)
+  (var-get next-test-id)
+)
+
+(define-read-only (get-next-history-id)
+  (var-get next-history-id)
+)
