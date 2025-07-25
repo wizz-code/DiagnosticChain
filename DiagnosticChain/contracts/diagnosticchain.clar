@@ -75,3 +75,56 @@
 (define-data-var next-test-id uint u1)
 (define-data-var next-history-id uint u1)
 (define-constant contract-owner tx-sender)
+
+(define-public (register-lab-facility
+  (lab-id principal)
+  (facility-name (string-ascii 100))
+  (license-number (string-ascii 50))
+  (accreditation (string-ascii 50))
+  (specialties (string-ascii 200)))
+  (begin
+    (asserts! (is-eq tx-sender contract-owner) ERR_NOT_AUTHORIZED)
+    (map-set lab-facilities
+      { lab-id: lab-id }
+      {
+        facility-name: facility-name,
+        license-number: license-number,
+        accreditation: accreditation,
+        specialties: specialties,
+        certified-date: block-height,
+        is-active: true
+      }
+    )
+    (ok true)
+  )
+)
+
+(define-public (order-diagnostic-test
+  (patient-id principal)
+  (lab-facility principal)
+  (test-type (string-ascii 100))
+  (test-code (string-ascii 20))
+  (priority-level (string-ascii 20))
+  (estimated-completion uint))
+  (let ((test-id (var-get next-test-id))
+        (lab-data (unwrap! (map-get? lab-facilities { lab-id: lab-facility }) ERR_INVALID_LAB)))
+    (asserts! (get is-active lab-data) ERR_INVALID_LAB)
+    (map-set diagnostic-tests
+      { test-id: test-id }
+      {
+        patient-id: patient-id,
+        ordering-physician: tx-sender,
+        lab-facility: lab-facility,
+        test-type: test-type,
+        test-code: test-code,
+        order-date: block-height,
+        sample-collected: u0,
+        priority-level: priority-level,
+        status: "ordered",
+        estimated-completion: estimated-completion
+      }
+    )
+    (var-set next-test-id (+ test-id u1))
+    (ok test-id)
+  )
+)
